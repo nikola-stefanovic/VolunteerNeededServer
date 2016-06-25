@@ -12,31 +12,6 @@ app.get('/', function (req, res) {
 
 app.use(bodyParser.json({limit:"10mb"}));
 
-app.post("/addEvent",function(req, res, next){
-	var body = req.body;
-	var evnt = body.vEvent;
-	var desc = evnt.desc;
-	//console.log("Stigao post: " + JSON.stringify(req.body,null,4));
-	console.log("Stigao zahtev za dodavanje eventa");
-	var imgName = Random.string()(Random.engines.nativeMath,12);
-
-	//decode 64based encoded jpeg
-	var img = new Buffer(evnt.img, 'base64'); 
-
-	//first save image file
-	fs.writeFile("files/events_images/"+imgName+'.jpeg', img, function(err){
-		if(err){
-			console.log("len " + evnt.img.length);
-			res.json({msg:"error durning saving image file"});
-		}else{
-			//add to database
-			console.log("len " + evnt.img.length);
-			res.json({title: desc +"? stvarno o|O"});
-		}
-	})
-
-
-});
 
 app.post("/registerNewUser",function(req, res, next){
 	console.log("Stigao zahtev za ragistraciju novog korisnika!");
@@ -87,6 +62,32 @@ app.post("/loginUser", function(req, res, next){
 	});
 });
 
+app.post("/addEvent", function(req, res, next){
+	console.log("Stigao zahtev za dodavanje event-a.");
+	var evnt = req.body.vEvent;
+	var organizer = evnt.organizer;
+	var title = evnt.title;
+	var lon = evnt.lon;
+	var lat = evnt.lat;
+	var desc = evnt.desc;
+	var category = evnt.category;
+	var volNeeded = evnt.volNeeded;
+	var time = evnt.time;
+
+	db.addEvent(organizer, title, lon, lat, desc, time, category, volNeeded, function(err){
+		if(err){ console.log("Neuspesno dodavanje event-a" + err); return res.json({msg:"neuspesno dodavanje event-a!"}); }
+		return res.json({msg:"OK"});
+	});
+
+});
+
+
+//error-handling function, this function must be defined last 
+app.use(function(err, req, res, next) {
+  console.log("Error handler: ");
+  console.error(err.stack);
+  res.status(500).send('Something broke!');
+});
 
 app.listen(3000, function () {
   console.log('Example app listening on port 3000!');
