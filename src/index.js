@@ -48,6 +48,7 @@ app.post("/registerNewUser",function(req, res, next){
 });
 
 app.post("/loginUser", function(req, res, next){
+	console.log("Stigao zahtev za logovanje korisnika!");
 	var body = req.body;
 	var username = body.username;
 	var password = body.password;
@@ -64,7 +65,7 @@ app.post("/loginUser", function(req, res, next){
 
 app.post("/addEvent", function(req, res, next){
 	console.log("Stigao zahtev za dodavanje event-a.");
-	var evnt = req.body.vEvent;
+	var evnt = req.body;
 	var organizer = evnt.organizer;
 	var title = evnt.title;
 	var lon = evnt.lon;
@@ -74,13 +75,56 @@ app.post("/addEvent", function(req, res, next){
 	var volNeeded = evnt.volNeeded;
 	var time = evnt.time;
 
-	db.addEvent(organizer, title, lon, lat, desc, time, category, volNeeded, function(err){
-		if(err){ console.log("Neuspesno dodavanje event-a" + err); return res.json({msg:"neuspesno dodavanje event-a!"}); }
-		return res.json({msg:"OK"});
+
+	var encodedImg = evnt.image;
+
+	console.log("Stigle je  i slika: " + encodedImg.length);
+	console.log("organizer : " + organizer);
+	//decode 64based encoded jpeg
+	var img = new Buffer(encodedImg, 'base64'); 
+	var imgName = Random.string()(Random.engines.nativeMath,12);
+	var imgPath = "files/events_images/"+imgName+'.jpeg';
+ 	//first save event image file
+ 	fs.writeFile(imgPath, img, function(err){
+ 		if(err){
+ 			console.log("len " + evnt.img.length);
+ 			return res.json({msg:"error durning saving event image file"});
+ 		}else{
+ 			//add to database
+			db.addEvent(organizer, title, lon, lat, desc, time, category, volNeeded, imgPath, function(err){
+				if(err){ 
+					console.log("Neuspesno dodavanje event-a" + err); 
+					return res.json({msg:"Could not insert event into database!"}); 
+				}else{
+					return res.json({msg:"OK"});
+				}
+			});
+ 		}
 	});
 
 });
 
+app.post("/addFriend", function(req, res, next){
+	console.log("Stigao zahtev za dodavanje prijatelja!");
+	var body = req.body;
+	var username = body.username;
+	var friendUsername = body.friendUsername;
+
+	db.addFriend(username, friendUsername, function(err){
+		if(err){ console.log("Neuspesna dodavanje prijatelja! " + err); return res.json({msg:"Greska na serveru!"}); }
+
+		return res.json({msg:"OK"});
+	});
+});
+
+app.post("/getAllEvents", function(req, res, next){
+	console.log("Stigao je zahtev za ucitavanje svih event-a!");
+	db.getAllEvents(function(err, events){
+		if(err) {console.log("Neuspesna citnaje shiv event-a iz baze! " + err); return res.json({msg:"Greska na serveru!"});}
+
+		return res.json({msg:"OK", data:events})
+	});
+});
 
 //error-handling function, this function must be defined last 
 app.use(function(err, req, res, next) {
