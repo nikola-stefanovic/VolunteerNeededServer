@@ -9,6 +9,8 @@ var VOL_PASSWORD = 'password';
 var VOL_NAME = 'name';
 var VOL_PHONE = 'phone_num';
 var VOL_IMG_FILE = 'ima_file';
+var VOL_CREATED_EVENTS = 'events';
+var VOL_FRIENDS = 'friends';
 //event fields
 var EVENT_ORGANIZER = 'organizer';
 var EVENT_TITLE = 'title';
@@ -18,6 +20,7 @@ var EVENT_LONGITUDE = 'lon';
 var EVENT_TIME = 'time';
 var EVENT_CATEGORY = 'category';
 var EVENT_VOL_NEEDED = 'volunteerNeeded';
+var EVENT_IMAGE = 'image';
 
 
 db.volunteer.find(function (err, docs) {
@@ -34,6 +37,9 @@ exports.insertNewUser = function(username, password, name, phone_num, cb){
 	user[VOL_PASSWORD] = password;
 	user[VOL_PHONE] = phone_num;
 	user[VOL_NAME] = name;
+	user[VOL_CREATED_EVENTS] = [];
+	user[VOL_FRIENDS] = [];
+
 
 	db.volunteer.insert(user,function(err){
 		if(err) { 
@@ -73,7 +79,7 @@ exports.isLoginValid = function(username, password, cb){
 	});
 };
 
-exports.addEvent = function(organizer, title, lon, lat, desc, time, volNeeded, category, cb){
+exports.addEvent = function(organizer, title, lon, lat, desc, time, category, volNeeded, image, cb){
 	console.log("Dodajem event!");
 	var evnt = {};
 	evnt[EVENT_ORGANIZER] = organizer;
@@ -84,13 +90,42 @@ exports.addEvent = function(organizer, title, lon, lat, desc, time, volNeeded, c
 	evnt[EVENT_LATITUDE] = lat;
 	evnt[EVENT_LONGITUDE] = lon;
 	evnt[EVENT_VOL_NEEDED] = volNeeded;
+	evnt[EVENT_IMAGE] = image;
 
 	db.events.insert(evnt, function(err, insertedDoc){
 		if(err) { return cb(err); }
 		var docID = insertedDoc._id;
-		db.volunteer.update({_id:docID}, {$push:{events:docID}},function(err){
-			if(err){ return cb(err); }
+
+		db.volunteer.update({username:organizer}, {$push:{events:docID}},function(err){
+			if(err){ 
+				return cb(err); 
+			}else{
+				return cb(null);
+		    }
 		});
 	});
-		return cb(null);
+};
+
+//obostrano dodavanje prijatelja
+exports.addFriend = function(username, friendUsername, cb){
+	db.volunteer.update({username:username}, {$push:{friends:friendUsername}},function(err){
+		if(err){ 
+			return cb(err); 
+		}else{
+			db.volunteer.update({username:friendUsername}, {$push:{friends:username}},function(err){
+				if(err) 
+					returncb(err);
+				else
+					return cb(null);
+			});
+	    }
+	});
+};
+
+
+exports.getAllEvents = function(cb){
+	db.events.find({},function(err, docs){
+		if(err) return cb(err);
+		return cb(null, docs);
+	});
 };
