@@ -5,6 +5,7 @@ var Random = require("random-js");
 var db = require('./db_access.js');
 var app = express();
 
+app.use(express.static('files'));
 
 app.get('/', function (req, res) {
   res.send('Hello World!');
@@ -82,8 +83,8 @@ app.post("/addEvent", function(req, res, next){
 	console.log("organizer : " + organizer);
 	//decode 64based encoded jpeg
 	var img = new Buffer(encodedImg, 'base64'); 
-	var imgName = Random.string()(Random.engines.nativeMath,12);
-	var imgPath = "files/events_images/"+imgName+'.jpeg';
+	var imgName = Random.string()(Random.engines.nativeMath,12) + ".jpeg";
+	var imgPath = "files/events_images/"+imgName;
  	//first save event image file
  	fs.writeFile(imgPath, img, function(err){
  		if(err){
@@ -91,7 +92,7 @@ app.post("/addEvent", function(req, res, next){
  			return res.json({msg:"error durning saving event image file"});
  		}else{
  			//add to database
-			db.addEvent(organizer, title, lon, lat, desc, time, category, volNeeded, imgPath, function(err){
+			db.addEvent(organizer, title, lon, lat, desc, time, category, volNeeded, imgName, function(err){
 				if(err){ 
 					console.log("Neuspesno dodavanje event-a" + err); 
 					return res.json({msg:"Could not insert event into database!"}); 
@@ -125,6 +126,31 @@ app.post("/getAllEvents", function(req, res, next){
 		return res.json({msg:"OK", data:events})
 	});
 });
+
+app.post("/getAllFriendsName", function(req, res, next){
+	console.log("Stigao zahtev za ucitavanje liste prijatelja!");
+	var body = req.body;
+	var username = body.username;
+	db.getFriendsName(username, function(err, friends){
+		if(err) {console.log("Neuspesna citnaje liste prijatelja iz baze! " + err); return res.json({msg:"Greska na serveru!"});}
+
+		return res.json({msg:"OK", data:friends})
+	});
+});
+
+
+app.post("/getAllFriends", function(req, res, next){
+	console.log("Stigao zahtev za ucitavanje liste objekata prijatelja!");
+	var body = req.body;
+	var username = body.username;
+	db.getAllFriends(username, function(err, friends){
+		if(err) {console.log("Neuspesna citnaje liste objekata prijatelja iz baze! " + err); return res.json({msg:"Greska na serveru!"});}
+
+		return res.json({msg:"OK", data:friends})
+	});
+});
+
+
 
 //error-handling function, this function must be defined last 
 app.use(function(err, req, res, next) {

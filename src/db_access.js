@@ -9,6 +9,8 @@ var VOL_PASSWORD = 'password';
 var VOL_NAME = 'name';
 var VOL_PHONE = 'phone_num';
 var VOL_IMG_FILE = 'ima_file';
+var VOL_RANK = "rank";
+var VOL_POINTS = "points";
 var VOL_CREATED_EVENTS = 'events';
 var VOL_FRIENDS = 'friends';
 //event fields
@@ -128,4 +130,40 @@ exports.getAllEvents = function(cb){
 		if(err) return cb(err);
 		return cb(null, docs);
 	});
+};
+
+exports.getFriendsName = function(username, cb){
+	db.volunteer.findOne({username:username},function(err, doc){
+		if(err) return cb(err);
+		console.log(doc);
+		return cb(null, doc.friends);
+	});
+};
+
+
+exports.getAllFriends = function(username, cb){
+	db.volunteer.findOne({username:username},function(err, doc){
+		if(err) return cb(err);
+		console.log(doc);
+		var friendsList = doc.friends;
+		db.volunteer.find({username:{$in:friendsList}}, function(err, friends){
+			if(err) return cb(err);
+			return cb(null, friends);
+		});
+	});
+};
+
+app.post("/getHighestRankedVolunteers", function(req, res, next){
+	console.log("Stigao je zahtev za ucitavanje najviše rangovanih volontera!");
+	db.getHighestRankedVolunteers(function(err, events){
+		if(err) {console.log("Neuspesna citnaje shiv event-a iz baze! " + err); return res.json({msg:"Greska na serveru!"});}
+
+		return res.json({msg:"OK", data:events})
+	});
+});
+
+exports.getHighestRankedVolunteers = function(cb){
+ db.volunteer.find().sort({points:1}).limit(10,function(err, docs){
+  if(err) return cb(err);
+  return cb(null, docs););
 };
